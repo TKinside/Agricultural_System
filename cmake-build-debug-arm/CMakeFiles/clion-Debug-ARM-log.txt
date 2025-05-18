@@ -1,0 +1,9 @@
+"F:\CLion\CLion 2024.3.1.1\bin\cmake\win\x64\bin\cmake.exe" -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_MAKE_PROGRAM=F:/CLion/CLion 2024.3.1.1/bin/ninja/win/x64/ninja.exe" -DCMAKE_C_COMPILER=F:/STM32CubeIDE_1.18.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.0.202411081344/tools/bin/arm-none-eabi-gcc.exe -DCMAKE_CXX_COMPILER=F:/STM32CubeIDE_1.18.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.0.202411081344/tools/bin/arm-none-eabi-g++.exe -G Ninja -S F:\CLion_Project\Agricultural_System -B F:\CLion_Project\Agricultural_System\cmake-build-debug-arm
+CMake Warning (dev) at CMakeLists.txt:16 (enable_language):
+  project() should be called prior to this enable_language() call.
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+Build type: Debug
+-- Configuring done (0.1s)
+-- Generating done (0.0s)
+-- Build files have been written to: F:/CLion_Project/Agricultural_System/cmake-build-debug-arm
