@@ -5,6 +5,7 @@
 #ifndef AGRICULTURAL_SYSTEM_LED_H
 #define AGRICULTURAL_SYSTEM_LED_H
 
+#define MAX 1
 void test(void);
 
 
