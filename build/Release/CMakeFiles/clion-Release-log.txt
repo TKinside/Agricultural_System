@@ -1,0 +1,17 @@
+"F:\CLion\CLion 2024.3.1.1\bin\cmake\win\x64\bin\cmake.exe" -DCMAKE_BUILD_TYPE=Release --preset Release -S F:\CLion_Project\Agricultural_System -B F:\CLion_Project\Agricultural_System\build\Release
+Preset CMake variables:
+
+  CMAKE_TOOLCHAIN_FILE:FILEPATH="F:/CLion_Project/Agricultural_System/cmake/gcc-arm-none-eabi.cmake"
+
+CMake Warning (dev) at CMakeLists.txt:17 (enable_language):
+  project() should be called prior to this enable_language() call.
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- The C compiler identification is GNU 13.3.1
+-- The ASM compiler identification is GNU
+-- Found assembler: F:/STM32CubeIDE_1.18.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.0.202411081344/tools/bin/arm-none-eabi-gcc.exe
+-- The CXX compiler identification is GNU 13.3.1
+Build type: Release
+-- Configuring done (1.1s)
+-- Generating done (0.0s)
+-- Build files have been written to: F:/CLion_Project/Agricultural_System/build/Release
