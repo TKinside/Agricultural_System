@@ -9,7 +9,7 @@
 #include "stdbool.h"
 #include "FreeRTOS.h"
 #include "cmsis_os2.h"
-enum LED_COLOR
+enum LEDColor_t
 {
     ALL=0,
     LED_RED,
@@ -23,11 +23,11 @@ enum LED_COLOR
 
 
 void TK_vLED_Init(void);
-void TK_vLED_On(enum LED_COLOR LED_SWITCH);
-void TK_vLED_Off(enum LED_COLOR LED_SWITCH);
-void TK_vLED_Toggle(enum LED_COLOR LED_SWITCH);
-void TK_vLED_Blink(enum LED_COLOR LED_SWITCH,uint32_t usTime);
-void TK_vLED_Delay(enum LED_COLOR LED_SWITCH,uint32_t usTime);
+void TK_vLED_On(enum LEDColor_t LED_SWITCH);
+void TK_vLED_Off(enum LEDColor_t LED_SWITCH);
+void TK_vLED_Toggle(enum LEDColor_t LED_SWITCH);
+void TK_vLED_Blink(enum LEDColor_t LED_SWITCH,uint32_t usTime);
+void TK_vLED_Delay(enum LEDColor_t LED_SWITCH,uint32_t usTime);
 
 
 

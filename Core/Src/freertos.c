@@ -27,9 +27,12 @@
 /* USER CODE BEGIN Includes */
 #include "led.h"
 #include "aht20.h"
+#include "oled.h"
+#include "event.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
+typedef StaticQueue_t osStaticMessageQDef_t;
 /* USER CODE BEGIN PTD */
 
 /* USER CODE END PTD */
@@ -62,10 +65,23 @@ const osThreadAttr_t Task_AHT20_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
-/* Definitions for TK_LEDInitTimeoutTimer */
-osTimerId_t TK_LEDInitTimeoutTimerHandle;
-const osTimerAttr_t TK_LEDInitTimeoutTimer_attributes = {
-  .name = "TK_LEDInitTimeoutTimer"
+/* Definitions for Task_OLED */
+osThreadId_t Task_OLEDHandle;
+const osThreadAttr_t Task_OLED_attributes = {
+  .name = "Task_OLED",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+/* Definitions for Queue_toOLED */
+osMessageQueueId_t Queue_toOLEDHandle;
+uint8_t Queue_toOLEDBuffer[ 5 * 16 ];
+osStaticMessageQDef_t Queue_toOLEDControlBlock;
+const osMessageQueueAttr_t Queue_toOLED_attributes = {
+  .name = "Queue_toOLED",
+  .cb_mem = &Queue_toOLEDControlBlock,
+  .cb_size = sizeof(Queue_toOLEDControlBlock),
+  .mq_mem = &Queue_toOLEDBuffer,
+  .mq_size = sizeof(Queue_toOLEDBuffer)
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -75,7 +91,7 @@ const osTimerAttr_t TK_LEDInitTimeoutTimer_attributes = {
 
 void AppTask_LED(void *argument);
 void AppTask_AHT20(void *argument);
-void TK_LEDInitCallback(void *argument);
+void AppTask_OLED(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -115,14 +131,14 @@ void MX_FREERTOS_Init(void) {
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
-  /* Create the timer(s) */
-  /* creation of TK_LEDInitTimeoutTimer */
-  TK_LEDInitTimeoutTimerHandle = osTimerNew(TK_LEDInitCallback, osTimerPeriodic, NULL, &TK_LEDInitTimeoutTimer_attributes);
-
   /* USER CODE BEGIN RTOS_TIMERS */
   /* start timers, add new ones, ... */
 
   /* USER CODE END RTOS_TIMERS */
+
+  /* Create the queue(s) */
+  /* creation of Queue_toOLED */
+  Queue_toOLEDHandle = osMessageQueueNew (5, 16, &Queue_toOLED_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -134,6 +150,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of Task_AHT20 */
   Task_AHT20Handle = osThreadNew(AppTask_AHT20, NULL, &Task_AHT20_attributes);
+
+  /* creation of Task_OLED */
+  Task_OLEDHandle = osThreadNew(AppTask_OLED, NULL, &Task_OLED_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -175,20 +194,67 @@ void AppTask_AHT20(void *argument)
 {
   /* USER CODE BEGIN AppTask_AHT20 */
   /* Infinite loop */
-
+  SensorMessage_t AHT20_msg;
   for(;;)
   {
-    TK_vAHT20_Measure();
+      if (TK_bAHT20_Measure()==true)
+      {
+          AHT20_msg.type=AHT20;
+          AHT20_msg.DATA.AHT20.temperature=TK_fAHT20_GetTemperature();
+          AHT20_msg.DATA.AHT20.humidity=TK_fAHT20_GetHumidity();
+          osMessageQueuePut(Queue_toOLEDHandle,&AHT20_msg,0,0);
+      }
+      else
+      {
+          //保留错误处理
+      }
+      osDelay(pdMS_TO_TICKS(1000));
   }
   /* USER CODE END AppTask_AHT20 */
 }
 
-/* TK_LEDInitCallback function */
-void TK_LEDInitCallback(void *argument)
+/* USER CODE BEGIN Header_AppTask_OLED */
+/**
+* @brief Function implementing the Task_OLED thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_AppTask_OLED */
+void AppTask_OLED(void *argument)
 {
-  /* USER CODE BEGIN TK_LEDInitCallback */
+  /* USER CODE BEGIN AppTask_OLED */
+  /* Infinite loop */
+  SensorMessage_t Sensor_Getted;
+  for(;;)
+  {
+      uint32_t flags = osThreadFlagsWait(EVENT_PAGE_UP | EVENT_PAGE_DOWN, osFlagsWaitAny, 0);
+      if (flags & EVENT_PAGE_UP)
+      {
+         TK_vOLED_PageUp();
 
-  /* USER CODE END TK_LEDInitCallback */
+      }
+      else if  (flags & EVENT_PAGE_DOWN)
+      {
+          TK_vOLED_PageDown();
+
+      }
+
+
+      if (osMessageQueueGet(Queue_toOLEDHandle,&Sensor_Getted,0,0)==osOK) {
+          if (Sensor_Getted.type == AHT20)
+          {
+              //显示数据
+              OLED_NewFrame();
+              OLED_DrawCircle(64,32,8,OLED_COLOR_NORMAL);
+          } else
+          {
+              //保留错误处理
+          }
+      }
+  }
+
+
+  /* USER CODE END AppTask_OLED */
 }
 
 /* Private application code --------------------------------------------------*/

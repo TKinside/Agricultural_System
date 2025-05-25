@@ -28,6 +28,7 @@
 /* USER CODE BEGIN Includes */
 #include "led.h"
 #include "aht20.h"
+#include "oled.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -98,6 +99,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   TK_vLED_Init();
   TK_vAHT20_Init();
+  OLED_Init();
   /* USER CODE END 2 */
 
   /* Init scheduler */

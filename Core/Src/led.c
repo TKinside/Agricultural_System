@@ -14,7 +14,7 @@ void TK_vLED_Init(void)
     HAL_Delay(500);
 }
 // 函数TK_vLED_On用于开启LED灯
-void TK_vLED_On(enum LED_COLOR LED_SWITCH)
+void TK_vLED_On(enum LEDColor_t LED_SWITCH)
 {
     // 根据LED_SWITCH的值，控制LED灯的亮灭
     switch (LED_SWITCH)
@@ -58,7 +58,7 @@ void TK_vLED_On(enum LED_COLOR LED_SWITCH)
     }
 }
 // 函数TK_vLED_Off用于关闭LED灯
-void TK_vLED_Off(enum LED_COLOR LED_SWITCH)
+void TK_vLED_Off(enum LEDColor_t LED_SWITCH)
 {
     // 根据LED_SWITCH的值，关闭对应的LED灯
     switch (LED_SWITCH)
@@ -102,7 +102,7 @@ void TK_vLED_Off(enum LED_COLOR LED_SWITCH)
     }
 }
 // 函数TK_vLED_Toggle用于切换LED灯的状态
-void TK_vLED_Toggle(enum LED_COLOR LED_SWITCH)
+void TK_vLED_Toggle(enum LEDColor_t LED_SWITCH)
 {
     // 根据LED_SWITCH的值，切换对应的LED灯的状态
     switch (LED_SWITCH)
@@ -148,7 +148,7 @@ void TK_vLED_Toggle(enum LED_COLOR LED_SWITCH)
 // 函数TK_vLED_Blink用于控制LED灯的闪烁
 // 参数LED_SWITCH表示要控制的LED灯的颜色
 // 参数usTime表示LED灯的闪烁时间
-void TK_vLED_Blink(enum LED_COLOR LED_SWITCH,uint32_t usTime)
+void TK_vLED_Blink(enum LEDColor_t LED_SWITCH,uint32_t usTime)
 {
     // 调用TK_vLED_Toggle函数，控制LED灯的开关
     TK_vLED_Toggle(LED_SWITCH);
@@ -156,7 +156,7 @@ void TK_vLED_Blink(enum LED_COLOR LED_SWITCH,uint32_t usTime)
     osDelay(pdMS_TO_TICKS(usTime));
 }
 // 函数TK_vLED_Delay用于控制LED灯的亮灭，参数LED_SWITCH表示要控制的LED灯的颜色，usTime表示延迟的时间
-void TK_vLED_Delay(enum LED_COLOR LED_SWITCH,uint32_t usTime)
+void TK_vLED_Delay(enum LEDColor_t LED_SWITCH,uint32_t usTime)
 {
     // 打开LED灯
     TK_vLED_On(LED_SWITCH);

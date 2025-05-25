@@ -18,9 +18,6 @@
 */
 #include "aht20.h"
 
-
-
-
 // 温湿度数据暂存变量
 float Temperature=0.0f;
 float Humidity=0.0f;
@@ -56,7 +53,7 @@ void TK_vAHT20_Init(void) {
     }
 }
 
-void TK_vAHT20_Measure(void) {
+bool TK_bAHT20_Measure(void) {
     // 定义发送缓冲区，包含三个字节的数据
     uint8_t sendBuffer[3] = {0xAC, 0x33, 0x00};
     // 定义接收缓冲区，包含六个字节的数据
@@ -64,7 +61,7 @@ void TK_vAHT20_Measure(void) {
     // 发送数据
     TK_vAHT20_Send(sendBuffer, 3);
     // 延时75ms
-    osDelay(pdMS_TO_TICKS(50));
+    osDelay(pdMS_TO_TICKS(75));
     // 接收数据
     TK_vAHT20_Receive(readBuffer, 6);
 
@@ -88,14 +85,16 @@ void TK_vAHT20_Measure(void) {
         Humidity = humi * 100 / (1 << 20);
         // 计算温度
         Temperature = temp * 200 / (1 << 20) - 50;
+        return true;
     }
+    return false;
 }
 
-float TK_fAHT20_Temperature(void) {
+float TK_fAHT20_GetTemperature(void) {
     return Temperature;
 }
 
-float TK_fAHT20_Humidity(void) {
+float TK_fAHT20_GetHumidity(void) {
     return Humidity;
 }
 
