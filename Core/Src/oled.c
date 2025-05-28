@@ -26,6 +26,9 @@ OLED屏幕驱动来自于厂商提供
 // 显存
 uint8_t OLED_GRAM[OLED_PAGE][OLED_COLUMN];
 
+//当前页面
+volatile PageState CurrentPage = PAGE_HOME;
+
 // ========================== 底层通信函数 ==========================
 
 /**
@@ -656,16 +659,103 @@ void OLED_PrintString(uint8_t x, uint8_t y, char *str, const Font *font, OLED_Co
   }
 }
 
+void OLED_SetContrast(uint8_t contrast) {
+    OLED_SendCmd(0x81);        // 对比度命令
+    OLED_SendCmd(contrast);
+}
+void TK_vOLED_UpdateSensorData(SensorMessage_t received)
+{
+    switch (received.type) {
+        case AHT20:
+        {
+            char temperatureStr[10];
+            char humidityStr[10];
+            sprintf(temperatureStr, "%.2f", received.DATA.AHT20.temperature);
+            sprintf(humidityStr, "%.2f", received.DATA.AHT20.humidity);
+
+            OLED_PrintASCIIString(16+TemperatureImg.w+4,4,temperatureStr, &afont24x12, OLED_COLOR_NORMAL);
+            OLED_PrintASCIIString(16+HumidityImg.w+4,4+HumidityImg.h+4,humidityStr, &afont24x12, OLED_COLOR_NORMAL);
+            OLED_ShowFrame();
+            break;
+        }
+
+        case LIGHT_SENSOR:
+        {
+            char lightIntensityStr[10];
+            sprintf(lightIntensityStr, "%.2f", received.DATA.light_intensity);
+
+            OLED_PrintASCIIString(16+LightIntensityImg.w+4,4+HumidityImg.h+4+LightIntensityImg.h+4,lightIntensityStr, &afont24x12, OLED_COLOR_NORMAL);
+            OLED_ShowFrame();
+            break;
+        }
+
+        default:
+            break;
+    }
+
+
+
+
+
+
+
+
+
+}
+
+void TK_vOLED_DisplayCurrentPage(void)
+{
+    switch (CurrentPage) {
+        case PAGE_HOME:
+            OLED_NewFrame();
+            OLED_DrawImage(16,32-HomeImg.h/2, &HomeImg, OLED_COLOR_NORMAL);
+            OLED_PrintASCIIString(16+HomeImg.w,32-HomeImg.h/2,"TKINSIDE", &afont24x12, OLED_COLOR_NORMAL);
+            OLED_ShowFrame();
+            break;
+        case PAGE_SENSOR:
+            OLED_NewFrame();
+            OLED_DrawImage(16,4, &TemperatureImg, OLED_COLOR_NORMAL);
+            OLED_DrawImage(16,4+TemperatureImg.h+4, &HumidityImg, OLED_COLOR_NORMAL);
+            OLED_DrawImage(16,4+TemperatureImg.h+4+HumidityImg.h+4, &LightIntensityImg, OLED_COLOR_NORMAL);
+            OLED_ShowFrame();
+            break;
+        case PAGE_MACHINE:
+            OLED_NewFrame();
+
+
+            OLED_ShowFrame();
+            break;
+        case PAGE_INFORMATION:
+            OLED_NewFrame();
+            OLED_DrawImage(0,0,&SystemImg,OLED_COLOR_NORMAL);
+
+
+            OLED_ShowFrame();
+            break;
+
+        default:
+            break;
+    }
+
+}
+
+
 void TK_vOLED_PageUp(void)
 {
+    if (CurrentPage == PAGE_HOME){
 
+        CurrentPage=PAGE_INFORMATION;
+    } else
+    {
+        CurrentPage--;
+
+    }
+    TK_vOLED_DisplayCurrentPage();
 
 }
 void TK_vOLED_PageDown(void)
 {
-
-
-
-
+    CurrentPage=(CurrentPage+1)%4;
+    TK_vOLED_DisplayCurrentPage();
 }
 

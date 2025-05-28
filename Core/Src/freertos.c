@@ -238,19 +238,17 @@ void AppTask_OLED(void *argument)
           TK_vOLED_PageDown();
 
       }
+      if (CurrentPage==PAGE_SENSOR)
+      {
+          if (osMessageQueueGet(Queue_toOLEDHandle,&Sensor_Getted,0,0)==osOK) {
 
+              TK_vOLED_UpdateSensorData(Sensor_Getted);
 
-      if (osMessageQueueGet(Queue_toOLEDHandle,&Sensor_Getted,0,0)==osOK) {
-          if (Sensor_Getted.type == AHT20)
-          {
-              //显示数据
-              OLED_NewFrame();
-              OLED_DrawCircle(64,32,8,OLED_COLOR_NORMAL);
-          } else
-          {
-              //保留错误处理
           }
+
+
       }
+
   }
 
 

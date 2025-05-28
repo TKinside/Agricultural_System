@@ -7,11 +7,25 @@
 #include "i2c.h"
 #include <math.h>
 #include <stdlib.h>
+#include "stdio.h"
+#include "message.h"
+
 
 typedef enum {
   OLED_COLOR_NORMAL = 0, // 正常模式 黑底白字
   OLED_COLOR_REVERSED    // 反色模式 白底黑字
 } OLED_ColorMode;
+
+typedef enum {
+    PAGE_HOME=0,
+    PAGE_SENSOR,      // 显示温湿度和光照强度
+    PAGE_MACHINE,      // 显示电机状态
+    PAGE_INFORMATION
+} PageState;
+
+extern volatile PageState CurrentPage;
+
+
 
 void OLED_Init();
 void OLED_DisPlay_On();
@@ -36,7 +50,10 @@ void OLED_PrintASCIIString(uint8_t x, uint8_t y, char *str, const ASCIIFont *fon
 void OLED_PrintString(uint8_t x, uint8_t y, char *str, const Font *font, OLED_ColorMode color);
 
 //以上是商家提供驱动以及基本函数封装，下为自定义
+void OLED_SetContrast(uint8_t contrast);
+
+void TK_vOLED_DisplayCurrentPage(void);
 void TK_vOLED_PageUp(void);
 void TK_vOLED_PageDown(void);
-
+void TK_vOLED_UpdateSensorData(SensorMessage_t received);
 #endif // __OLED_H__
