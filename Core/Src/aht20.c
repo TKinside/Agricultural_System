@@ -27,13 +27,13 @@ float Humidity=0.0f;
 // 函数AHT20_Send用于向AHT20传感器发送数据
 void TK_vAHT20_Send(uint8_t *data, uint8_t len) {
     // 使用HAL库的I2C主发送函数，向AHT20传感器发送数据
-    HAL_I2C_Master_Transmit_DMA(&hi2c1, AHT20_ADDRESS, data, len);
+    HAL_I2C_Master_Transmit(&hi2c1, AHT20_ADDRESS, data, len,0);
 }
 
 // 函数AHT20_Receive用于从AHT20传感器接收数据
 void TK_vAHT20_Receive(uint8_t *data, uint8_t len) {
     // 使用HAL库的I2C主接收函数从AHT20传感器接收数据
-    HAL_I2C_Master_Receive_DMA(&hi2c1, AHT20_ADDRESS, data, len);
+    HAL_I2C_Master_Receive(&hi2c1, AHT20_ADDRESS, data, len,0);
 }
 
 void TK_vAHT20_Init(void) {

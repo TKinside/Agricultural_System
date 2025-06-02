@@ -1,0 +1,18 @@
+//
+// Created by tKinsde on 2025/5/30.
+//
+
+#ifndef AGRICULTURAL_SYSTEM_ESP8266_H
+#define AGRICULTURAL_SYSTEM_ESP8266_H
+
+
+
+
+
+
+
+
+
+
+
+#endif //AGRICULTURAL_SYSTEM_ESP8266_H

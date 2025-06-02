@@ -27,12 +27,12 @@ extern volatile PageState CurrentPage;
 
 
 
-void OLED_Init();
-void OLED_DisPlay_On();
-void OLED_DisPlay_Off();
+void OLED_Init(void);
+void OLED_DisPlay_On(void);
+void OLED_DisPlay_Off(void);
 
-void OLED_NewFrame();
-void OLED_ShowFrame();
+void OLED_NewFrame(void);
+void OLED_ShowFrame(void);
 void OLED_SetPixel(uint8_t x, uint8_t y, OLED_ColorMode color);
 
 void OLED_DrawLine(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, OLED_ColorMode color);

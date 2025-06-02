@@ -19,7 +19,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
-#include "dma.h"
 #include "i2c.h"
 #include "tim.h"
 #include "gpio.h"
@@ -93,13 +92,27 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_DMA_Init();
   MX_I2C1_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
+    HAL_Delay(20);
+  OLED_Init();
   TK_vLED_Init();
   TK_vAHT20_Init();
-  OLED_Init();
+    for (int i = 0; i < 32; ++i) {
+
+        OLED_NewFrame();
+        OLED_DrawCircle(64,32,4*i,OLED_COLOR_NORMAL);
+        OLED_DrawCircle(64,32,2*i,OLED_COLOR_NORMAL);
+        OLED_ShowFrame();
+        //HAL_Delay(10);
+    }
+
+
+  OLED_NewFrame();
+    OLED_PrintASCIIString(0,0,"Hello World!",&afont24x12,OLED_COLOR_NORMAL);
+    OLED_ShowFrame();
+
   /* USER CODE END 2 */
 
   /* Init scheduler */

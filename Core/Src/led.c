@@ -12,6 +12,7 @@ void TK_vLED_Init(void)
     HAL_Delay(500);
     TK_vLED_On(ALL);
     HAL_Delay(500);
+    TK_vLED_Off(ALL);
 }
 // 函数TK_vLED_On用于开启LED灯
 void TK_vLED_On(enum LEDColor_t LED_SWITCH)

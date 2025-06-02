@@ -39,7 +39,7 @@ volatile PageState CurrentPage = PAGE_HOME;
  * @note 此函数是移植本驱动时的重要函数 将本驱动库移植到其他平台时应根据实际情况修改此函数
  */
 void OLED_Send(uint8_t *data, uint8_t len) {
-  HAL_I2C_Master_Transmit(&hi2c1, OLED_ADDRESS, data, len, HAL_MAX_DELAY);
+  HAL_I2C_Master_Transmit(&hi2c1, OLED_ADDRESS, data, len,0);
 }
 
 /**
@@ -57,7 +57,7 @@ void OLED_SendCmd(uint8_t cmd) {
  * @brief 初始化OLED
  * @note 此函数是移植本驱动时的重要函数 将本驱动库移植到其他驱动芯片时应根据实际情况修改此函数
  */
-void OLED_Init() {
+void OLED_Init(void) {
   OLED_SendCmd(0xAE); /*关闭显示 display off*/
 
   OLED_SendCmd(0x02); /*设置列起始地址 set lower column address*/
@@ -108,7 +108,7 @@ void OLED_Init() {
 /**
  * @brief 开启OLED显示
  */
-void OLED_DisPlay_On() {
+void OLED_DisPlay_On(void) {
   OLED_SendCmd(0x8D); // 电荷泵使能
   OLED_SendCmd(0x14); // 开启电荷泵
   OLED_SendCmd(0xAF); // 点亮屏幕
@@ -117,7 +117,7 @@ void OLED_DisPlay_On() {
 /**
  * @brief 关闭OLED显示
  */
-void OLED_DisPlay_Off() {
+void OLED_DisPlay_Off(void) {
   OLED_SendCmd(0x8D); // 电荷泵使能
   OLED_SendCmd(0x10); // 关闭电荷泵
   OLED_SendCmd(0xAE); // 关闭屏幕
@@ -142,7 +142,7 @@ void OLED_SetColorMode(OLED_ColorMode mode) {
 /**
  * @brief 清空显存 绘制新的一帧
  */
-void OLED_NewFrame() {
+void OLED_NewFrame(void) {
   memset(OLED_GRAM, 0, sizeof(OLED_GRAM));
 }
 
@@ -150,7 +150,7 @@ void OLED_NewFrame() {
  * @brief 将当前显存显示到屏幕上
  * @note 此函数是移植本驱动时的重要函数 将本驱动库移植到其他驱动芯片时应根据实际情况修改此函数
  */
-void OLED_ShowFrame() {
+void OLED_ShowFrame(void) {
   static uint8_t sendBuffer[OLED_COLUMN + 1];
   sendBuffer[0] = 0x40;
   for (uint8_t i = 0; i < OLED_PAGE; i++) {
@@ -690,6 +690,7 @@ void TK_vOLED_UpdateSensorData(SensorMessage_t received)
         }
 
         default:
+
             break;
     }
 

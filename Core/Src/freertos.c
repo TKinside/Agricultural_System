@@ -178,7 +178,7 @@ void AppTask_LED(void *argument)
 
   for(;;)
   {
-    osDelay(1);
+      //TK_vLED_Blink(ALL,500);
   }
   /* USER CODE END AppTask_LED */
 }
@@ -247,6 +247,9 @@ void AppTask_OLED(void *argument)
           }
 
 
+      } else
+      {
+          TK_vOLED_DisplayCurrentPage();
       }
 
   }
