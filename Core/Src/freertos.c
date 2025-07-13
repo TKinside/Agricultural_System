@@ -69,7 +69,7 @@ const osThreadAttr_t Task_AHT20_attributes = {
 osThreadId_t Task_OLEDHandle;
 const osThreadAttr_t Task_OLED_attributes = {
   .name = "Task_OLED",
-  .stack_size = 256 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for Queue_toOLED */
@@ -175,7 +175,7 @@ void AppTask_LED(void *argument)
 {
   /* USER CODE BEGIN AppTask_LED */
   /* Infinite loop */
-
+    //TK_vLED_Init();
   for(;;)
   {
       //TK_vLED_Blink(ALL,500);
@@ -225,19 +225,30 @@ void AppTask_OLED(void *argument)
   /* USER CODE BEGIN AppTask_OLED */
   /* Infinite loop */
   SensorMessage_t Sensor_Getted;
+
+    for (int i = 0; i < 32; ++i) {
+
+        OLED_NewFrame();
+        OLED_DrawCircle(64,32,4*i,OLED_COLOR_NORMAL);
+        OLED_DrawCircle(64,32,2*i,OLED_COLOR_NORMAL);
+        OLED_ShowFrame();
+        //HAL_Delay(10);
+    }
   for(;;)
   {
       uint32_t flags = osThreadFlagsWait(EVENT_PAGE_UP | EVENT_PAGE_DOWN, osFlagsWaitAny, 0);
-      if (flags & EVENT_PAGE_UP)
+      if (flags == EVENT_PAGE_UP)
       {
          TK_vOLED_PageUp();
 
       }
-      else if  (flags & EVENT_PAGE_DOWN)
+      else if  (flags == EVENT_PAGE_DOWN)
       {
           TK_vOLED_PageDown();
 
       }
+
+
       if (CurrentPage==PAGE_SENSOR)
       {
           if (osMessageQueueGet(Queue_toOLEDHandle,&Sensor_Getted,0,0)==osOK) {
@@ -249,7 +260,11 @@ void AppTask_OLED(void *argument)
 
       } else
       {
-          TK_vOLED_DisplayCurrentPage();
+          OLED_NewFrame();
+          OLED_DrawImage(16,32-HomeImg.h/2, &HomeImg, OLED_COLOR_NORMAL);
+          OLED_PrintASCIIString(16+HomeImg.w,32-HomeImg.h/2,"TKINSIDE", &afont24x12, OLED_COLOR_NORMAL);
+          OLED_ShowFrame();
+          //TK_vOLED_DisplayCurrentPage();
       }
 
   }
