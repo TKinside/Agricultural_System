@@ -27,7 +27,7 @@ OLED屏幕驱动来自于厂商提供
 uint8_t OLED_GRAM[OLED_PAGE][OLED_COLUMN];
 
 //当前页面
-volatile PageState CurrentPage = PAGE_HOME;
+static volatile PageState CurrentPage = PAGE_HOME;
 
 // ========================== 底层通信函数 ==========================
 
@@ -38,8 +38,53 @@ volatile PageState CurrentPage = PAGE_HOME;
  * @return None
  * @note 此函数是移植本驱动时的重要函数 将本驱动库移植到其他平台时应根据实际情况修改此函数
  */
-void OLED_Send(uint8_t *data, uint8_t len) {
-  HAL_I2C_Master_Transmit(&hi2c1, OLED_ADDRESS, data, len,HAL_MAX_DELAY);
+// File: oled.c
+
+// 在 oled.c 的顶部或一个通用工具文件中，定义以下函数
+// 这个函数用于在I2C总线卡死时，通过手动产生时钟信号来尝试恢复
+void OLED_Send(uint8_t *data, uint8_t len)
+{
+    // 1. 获取总线使用权
+    if (osMutexAcquire(MUTEX_I2C1Handle, osWaitForever) == osOK)
+    {
+        // 2. 启动DMA传输
+        HAL_StatusTypeDef status = HAL_I2C_Master_Transmit_DMA(&hi2c1, OLED_ADDRESS, data, len);
+
+        if (status == HAL_OK)
+        {
+
+            // 3. 等待DMA硬件完成数据搬运
+            osSemaphoreAcquire(SEM_I2C1_TX_CPLTHandle, osWaitForever);
+
+            // 4. 等待I2C硬件协议完成，总线真正空闲
+            //    这是预防问题的核心！
+            uint32_t tickstart = osKernelGetTickCount();
+            while (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY)
+            {
+
+                // 如果等待超时（例如超过25ms），说明总线被硬件卡死
+                if ((osKernelGetTickCount() - tickstart) > 25)
+                {
+                    // 执行HAL库级别的安全恢复流程
+                    HAL_I2C_DeInit(&hi2c1);
+                    HAL_I2C_Init(&hi2c1);
+                    break; // 跳出循环
+                }
+            }
+        }
+        else // DMA启动失败 (status is HAL_BUSY or HAL_ERROR)
+        {
+            //TK_vLED_Delay(LED_RED,10);
+            // 立即执行HAL库级别的安全恢复流程
+            HAL_I2C_DeInit(&hi2c1);
+            HAL_I2C_Init(&hi2c1);
+        }
+
+        // 5. 归还总线使用权
+        osMutexRelease(MUTEX_I2C1Handle);
+
+        // 注意：这里不再需要任何 osDelay()！
+    }
 }
 
 /**
@@ -58,6 +103,8 @@ void OLED_SendCmd(uint8_t cmd) {
  * @note 此函数是移植本驱动时的重要函数 将本驱动库移植到其他驱动芯片时应根据实际情况修改此函数
  */
 void OLED_Init(void) {
+
+    HAL_Delay(100);
   OLED_SendCmd(0xAE); /*关闭显示 display off*/
 
   OLED_SendCmd(0x02); /*设置列起始地址 set lower column address*/
@@ -663,23 +710,54 @@ void OLED_SetContrast(uint8_t contrast) {
     OLED_SendCmd(0x81);        // 对比度命令
     OLED_SendCmd(contrast);
 }
-void TK_vOLED_UpdateSensorData(SensorMessage_t received)
+void TK_vOLED_UpdateSensorData(SensorMessage_t sensorData_Get)
 {
-    switch (received.type) {
+    static uint8_t temperatureInt=0;//温度整数
+    static uint8_t temperatureDec=0;//温度小数
+    static uint8_t humidityInt=0;//湿度整数
+    static uint8_t humidityDec=0;//湿度小数
+    static char temperatureStr[8];
+    static char humidityStr[8];
+    switch (sensorData_Get.type) {
         case AHT20:
         {
-            char temperatureStr[10];
-            char humidityStr[10];
-            sprintf(temperatureStr, "%.2f", received.DATA.AHT20.temperature);
-            sprintf(humidityStr, "%.2f", received.DATA.AHT20.humidity);
+            //解析温度部分
+            uint32_t temperature_temp = (uint32_t)(sensorData_Get.DATA.AHT20.temperature*100);//温度小数部分放大一百倍
+            temperatureInt = (uint8_t)sensorData_Get.DATA.AHT20.temperature;
+            temperatureDec = temperature_temp%100;
+            //解析湿度部分
+            uint32_t humidity_temp = (uint32_t)(sensorData_Get.DATA.AHT20.humidity*100);//湿度小数部分放大一百倍
+            humidityInt = (uint8_t)sensorData_Get.DATA.AHT20.humidity;
+            humidityDec = humidity_temp%100;
 
-            OLED_PrintASCIIString(16+TemperatureImg.w+4,4,temperatureStr, &afont24x12, OLED_COLOR_NORMAL);
-            OLED_PrintASCIIString(16+HumidityImg.w+4,4+HumidityImg.h+4,humidityStr, &afont24x12, OLED_COLOR_NORMAL);
-            OLED_ShowFrame();
+            //拼接整数和小数部分
+            sprintf(temperatureStr, "%d.%d", temperatureInt,temperatureDec);
+            sprintf(humidityStr, "%d.%d", humidityInt,humidityDec);
+
+
+            // 1. 在显存中绘制温度字符串 (不清屏)
+            OLED_PrintASCIIString(16+TemperatureImg.w+4, 4, temperatureStr, &afont12x6, OLED_COLOR_NORMAL);
+
+            // 2. 在显存中绘制湿度字符串 (不清屏)
+            OLED_PrintASCIIString(16+HumidityImg.w+4, 4+TemperatureImg.h+4, humidityStr, &afont12x6, OLED_COLOR_NORMAL);
+
+            // 3. 计算需要刷新的区域
+            //    这个区域应该能完整地包裹住两个数值
+            //    x坐标：从图标右侧开始
+            //    y坐标：从第一个数值的顶部开始
+            //    宽度：取两个字符串中最宽的那个（可以估算一个最大值）
+            //    高度：覆盖从第一个数值顶部到第二个数值底部
+            uint8_t refresh_x = 16 + TemperatureImg.w + 4;
+            uint8_t refresh_y = 4;
+            uint8_t refresh_width = 40; // 估算一个足够容纳"xx.xx"的宽度
+            uint8_t refresh_height = (4 + TemperatureImg.h + 4 + HumidityImg.h) - 4;
+
+            // 4. 调用局部刷新函数，只更新那一小块区域
+            TK_vOLED_RefreshArea(refresh_x, refresh_y, refresh_width, refresh_height);
             break;
         }
 
-        case LIGHT_SENSOR:
+       /* case LIGHT_SENSOR:
         {
             char lightIntensityStr[10];
             sprintf(lightIntensityStr, "%.2f", received.DATA.light_intensity);
@@ -687,7 +765,7 @@ void TK_vOLED_UpdateSensorData(SensorMessage_t received)
             OLED_PrintASCIIString(16+LightIntensityImg.w+4,4+HumidityImg.h+4+LightIntensityImg.h+4,lightIntensityStr, &afont24x12, OLED_COLOR_NORMAL);
             OLED_ShowFrame();
             break;
-        }
+        }*/
 
         default:
 
@@ -708,26 +786,27 @@ void TK_vOLED_DisplayCurrentPage(void)
 {
     switch (CurrentPage) {
         case PAGE_HOME:
-            OLED_NewFrame();
-            OLED_DrawImage(16,32-HomeImg.h/2, &HomeImg, OLED_COLOR_NORMAL);
-            OLED_PrintASCIIString(16+HomeImg.w,32-HomeImg.h/2,"TKINSIDE", &afont24x12, OLED_COLOR_NORMAL);
+            TK_vOLED_Clear();
+            OLED_DrawImage(0,32-HomeImg.h/2, &HomeImg, OLED_COLOR_NORMAL);
+            OLED_PrintASCIIString(HomeImg.w,32-24/2,"TKINSIDE", &afont24x12, OLED_COLOR_NORMAL);
             OLED_ShowFrame();
             break;
         case PAGE_SENSOR:
-            OLED_NewFrame();
+            TK_vOLED_Clear();
             OLED_DrawImage(16,4, &TemperatureImg, OLED_COLOR_NORMAL);
             OLED_DrawImage(16,4+TemperatureImg.h+4, &HumidityImg, OLED_COLOR_NORMAL);
             OLED_DrawImage(16,4+TemperatureImg.h+4+HumidityImg.h+4, &LightIntensityImg, OLED_COLOR_NORMAL);
             OLED_ShowFrame();
             break;
         case PAGE_MACHINE:
-            OLED_NewFrame();
-
-
+            TK_vOLED_Clear();
+            OLED_DrawImage(0,0,&RunningStatusImg,OLED_COLOR_NORMAL);
+            OLED_PrintASCIIString(RunningStatusImg.w+8,(RunningStatusImg.h/2)-24/2,"Running", &afont12x6, OLED_COLOR_NORMAL);
+            OLED_PrintASCIIString(RunningStatusImg.w+8,(RunningStatusImg.h/2),"Status", &afont12x6, OLED_COLOR_NORMAL);
             OLED_ShowFrame();
             break;
         case PAGE_INFORMATION:
-            OLED_NewFrame();
+            TK_vOLED_Clear();
             OLED_DrawImage(0,0,&SystemImg,OLED_COLOR_NORMAL);
 
 
@@ -745,7 +824,8 @@ void TK_vOLED_PageUp(void)
 {
     if (CurrentPage == PAGE_HOME){
 
-        CurrentPage=PAGE_INFORMATION;
+        //暂时不做循环翻页，用链表来实现这个并不重要的功能有点浪费性能
+        //CurrentPage=PAGE_INFORMATION;
     } else
     {
         CurrentPage--;
@@ -756,7 +836,73 @@ void TK_vOLED_PageUp(void)
 }
 void TK_vOLED_PageDown(void)
 {
-    CurrentPage=(CurrentPage+1)%4;
+    if (CurrentPage == (PAGE_COUNT-1)){
+        //暂时不做循环翻页，用链表来实现这个并不重要的功能有点浪费性能
+        //CurrentPage=PAGE_HOME;
+    } else {
+        CurrentPage++;
+    }
     TK_vOLED_DisplayCurrentPage();
 }
 
+void TK_vOLED_Clear(void)
+{
+    OLED_NewFrame();
+    OLED_ShowFrame();
+}
+
+void TK_vOLED_DisplayMachineState(MachineState_t machineState)
+{
+
+
+}
+
+PageState TK_xOLED_GetCurrentPage()
+{
+    return CurrentPage;
+
+}
+
+/**
+ * @brief 将显存中的一个指定矩形区域刷新到OLED屏幕 (局部刷新)
+ * @param x      矩形区域的起始横坐标 (0-127)
+ * @param y      矩形区域的起始纵坐标 (0-63)
+ * @param width  矩形的宽度
+ * @param height 矩形的高度
+ * @note  此函数用于仅更新屏幕的一部分，性能远高于全屏刷新。
+ */
+void TK_vOLED_RefreshArea(uint8_t x, uint8_t y, uint8_t width, uint8_t height)
+{
+    // 0. 边界检查，防止传入的参数导致内存访问越界
+    if (x > OLED_COLUMN - 1) return;
+    if (y > OLED_ROW - 1) return;
+    if (x + width > OLED_COLUMN) {
+        width = OLED_COLUMN - x;
+    }
+    if (y + height > OLED_ROW) {
+        height = OLED_ROW - y;
+    }
+
+    // 1. 根据像素坐标计算出操作的起始页和结束页
+    uint8_t start_page = y / 8;
+    uint8_t end_page = (y + height - 1) / 8;
+
+    // 2. 准备一个静态的发送缓冲区，避免在栈上重复创建
+    static uint8_t sendBuffer[OLED_COLUMN + 1];
+    sendBuffer[0] = 0x40; // I2C数据流的控制字节
+
+    // 3. 遍历所有受影响的页
+    for (uint8_t page = start_page; page <= end_page; page++)
+    {
+        // 4. 发送命令，精确设置硬件的页地址和列起始地址
+        OLED_SendCmd(0xB0 + page);
+        OLED_SendCmd(0x00 | (x & 0x0F));
+        OLED_SendCmd(0x10 | (x >> 4));
+
+        // 5. 从全局显存OLED_GRAM中，只拷贝需要更新的那一小部分数据
+        memcpy(sendBuffer + 1, &OLED_GRAM[page][x], width);
+
+        // 6. 将这一页的部分数据通过I2C发送出去
+        OLED_Send(sendBuffer, width + 1);
+    }
+}

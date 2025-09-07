@@ -8,7 +8,9 @@
 #include <math.h>
 #include <stdlib.h>
 #include "stdio.h"
-#include "message.h"
+#include "../../MiddleFile/message.h"
+#include <cmsis_os2.h>
+#include "LED/led.h"
 
 
 typedef enum {
@@ -20,11 +22,19 @@ typedef enum {
     PAGE_HOME=0,
     PAGE_SENSOR,      // 显示温湿度和光照强度
     PAGE_MACHINE,      // 显示电机状态
-    PAGE_INFORMATION
+    PAGE_INFORMATION, //显示关于信息
+    PAGE_COUNT
 } PageState;
-
-extern volatile PageState CurrentPage;
-
+typedef enum {
+    BRIGHTNESS_STANDBY=0, // 待机亮度
+    BRIGHTNESS_ACTIVE   // 运行亮度
+}MachineState_t;
+//I2C1总线互斥锁
+extern osMutexId_t MUTEX_I2C1Handle;
+//I2C1发送完成信号量
+extern  osSemaphoreId_t SEM_I2C1_TX_CPLTHandle;
+//I2C1接收完成信号量
+extern  osSemaphoreId_t SEM_I2C1_RX_CPLTHandle;
 
 
 void OLED_Init(void);
@@ -55,5 +65,10 @@ void OLED_SetContrast(uint8_t contrast);
 void TK_vOLED_DisplayCurrentPage(void);
 void TK_vOLED_PageUp(void);
 void TK_vOLED_PageDown(void);
-void TK_vOLED_UpdateSensorData(SensorMessage_t received);
+void TK_vOLED_UpdateSensorData(SensorMessage_t sensorData_Get);
+void TK_vOLED_Clear(void);
+void TK_vOLED_DisplayMachineState(MachineState_t machineState);
+PageState TK_xOLED_GetCurrentPage();
+void TK_vOLED_RefreshArea(uint8_t x, uint8_t y, uint8_t width, uint8_t height);
+
 #endif // __OLED_H__

@@ -46,7 +46,7 @@ extern const Image LightIntensityImg;
 extern const Image VentilatorImg;
 extern const Image SystemImg;
 extern const Image HomeImg;
-
+extern const Image RunningStatusImg;
 
 
 
