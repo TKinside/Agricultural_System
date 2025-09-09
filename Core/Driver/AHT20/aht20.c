@@ -17,9 +17,19 @@
 4.计算温湿度值。
 */
 #include "aht20.h"
+#include "i2c.h"
+#include "cmsis_os2.h"
 
 // 温湿度数据暂存变量
 static AHT20_Data_t AHT20_Data_Global={0.0f,0.0f};
+//I2C1总线互斥锁
+extern osMutexId_t MUTEX_I2C1Handle;
+//I2C1发送完成信号量
+extern  osSemaphoreId_t SEM_I2C1_TX_CPLTHandle;
+//I2C1接收完成信号量
+extern  osSemaphoreId_t SEM_I2C1_RX_CPLTHandle;
+
+
 
 // ========================== 底层通信函数 ==========================
 

@@ -41,3 +41,10 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c) {
         osSemaphoreRelease(SEM_I2C1_RX_CPLTHandle);
     }
 }
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
+
+    if(hadc->Instance == ADC1){
+        osSemaphoreRelease(SEM_ADC1_READ_CPLTHandle);
+        }
+}

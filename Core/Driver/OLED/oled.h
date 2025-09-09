@@ -1,16 +1,9 @@
-#ifndef __OLED_H__
-#define __OLED_H__
+#ifndef AGRICULTURAL_SYSTEM_OLED_H
+#define AGRICULTURAL_SYSTEM_OLED_H
 
 #include "font.h"
 #include "main.h"
-#include "string.h"
-#include "i2c.h"
-#include <math.h>
-#include <stdlib.h>
-#include "stdio.h"
 #include "../../MiddleFile/message.h"
-#include <cmsis_os2.h>
-#include "LED/led.h"
 
 
 typedef enum {
@@ -29,14 +22,14 @@ typedef enum {
     BRIGHTNESS_STANDBY=0, // 待机亮度
     BRIGHTNESS_ACTIVE   // 运行亮度
 }MachineState_t;
-//I2C1总线互斥锁
-extern osMutexId_t MUTEX_I2C1Handle;
-//I2C1发送完成信号量
-extern  osSemaphoreId_t SEM_I2C1_TX_CPLTHandle;
-//I2C1接收完成信号量
-extern  osSemaphoreId_t SEM_I2C1_RX_CPLTHandle;
 
 
+// OLED器件地址
+#define OLED_ADDRESS 0x7A
+// OLED参数
+#define OLED_PAGE 8            // OLED页数
+#define OLED_ROW 8 * OLED_PAGE // OLED行数
+#define OLED_COLUMN 128        // OLED列数
 void OLED_Init(void);
 void OLED_DisPlay_On(void);
 void OLED_DisPlay_Off(void);
@@ -71,4 +64,4 @@ void TK_vOLED_DisplayMachineState(MachineState_t machineState);
 PageState TK_xOLED_GetCurrentPage();
 void TK_vOLED_RefreshArea(uint8_t x, uint8_t y, uint8_t width, uint8_t height);
 
-#endif // __OLED_H__
+#endif //AGRICULTURAL_SYSTEM_OLED_H

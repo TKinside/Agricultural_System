@@ -6,7 +6,7 @@
 #define AGRICULTURAL_SYSTEM_LOGGER_H
 
 #include "main.h"
-#include <cmsis_os2.h>      //需要 osMessageQueueId_t
+#include "cmsis_os2.h"      //需要 osMessageQueueId_t
 #include "FreeRTOS.h"      // 需要 pvPortMalloc/vPortFree
 #include "usart.h"         // 需要 UART 句柄和 HAL_UART_Transmit
 #include <stdio.h>         // 需要 vsnprintf

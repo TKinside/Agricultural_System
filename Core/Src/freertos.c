@@ -30,7 +30,7 @@
 #include "OLED/oled.h"
 #include "../MiddleFile/event.h"
 #include "usart.h"
-
+#include "LIGHTSENSOR/light_sensor.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -94,6 +94,13 @@ const osThreadAttr_t Task_LOGGER_attributes = {
   .stack_size = sizeof(Task_LOGGERBuffer),
   .priority = (osPriority_t) osPriorityHigh,
 };
+/* Definitions for Task_LIGHTSENSO */
+osThreadId_t Task_LIGHTSENSOHandle;
+const osThreadAttr_t Task_LIGHTSENSO_attributes = {
+  .name = "Task_LIGHTSENSO",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 /* Definitions for Queue_toOLED */
 osMessageQueueId_t Queue_toOLEDHandle;
 uint8_t Queue_toOLEDBuffer[ 5 * 20 ];
@@ -136,6 +143,16 @@ osSemaphoreId_t SEM_I2C1_RX_CPLTHandle;
 const osSemaphoreAttr_t SEM_I2C1_RX_CPLT_attributes = {
   .name = "SEM_I2C1_RX_CPLT"
 };
+/* Definitions for SEM_ADC1_READ_CPLT */
+osSemaphoreId_t SEM_ADC1_READ_CPLTHandle;
+const osSemaphoreAttr_t SEM_ADC1_READ_CPLT_attributes = {
+  .name = "SEM_ADC1_READ_CPLT"
+};
+/* Definitions for SEM_ADC1_CONV_CPLT */
+osSemaphoreId_t SEM_ADC1_CONV_CPLTHandle;
+const osSemaphoreAttr_t SEM_ADC1_CONV_CPLT_attributes = {
+  .name = "SEM_ADC1_CONV_CPLT"
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -147,6 +164,7 @@ void AppTask_AHT20(void *argument);
 void AppTask_OLED(void *argument);
 void AppTask_KEY(void *argument);
 void AppTask_LOGGER(void *argument);
+void AppTask_LIGHTSENSOR(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -195,6 +213,12 @@ void MX_FREERTOS_Init(void) {
   /* creation of SEM_I2C1_RX_CPLT */
   SEM_I2C1_RX_CPLTHandle = osSemaphoreNew(1, 1, &SEM_I2C1_RX_CPLT_attributes);
 
+  /* creation of SEM_ADC1_READ_CPLT */
+  SEM_ADC1_READ_CPLTHandle = osSemaphoreNew(1, 0, &SEM_ADC1_READ_CPLT_attributes);
+
+  /* creation of SEM_ADC1_CONV_CPLT */
+  SEM_ADC1_CONV_CPLTHandle = osSemaphoreNew(1, 0, &SEM_ADC1_CONV_CPLT_attributes);
+
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
@@ -230,6 +254,9 @@ void MX_FREERTOS_Init(void) {
 
   /* creation of Task_LOGGER */
   Task_LOGGERHandle = osThreadNew(AppTask_LOGGER, NULL, &Task_LOGGER_attributes);
+
+  /* creation of Task_LIGHTSENSO */
+  Task_LIGHTSENSOHandle = osThreadNew(AppTask_LIGHTSENSOR, NULL, &Task_LIGHTSENSO_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -272,7 +299,7 @@ void AppTask_AHT20(void *argument)
   /* USER CODE BEGIN AppTask_AHT20 */
   /* Infinite loop */
   TK_vAHT20_Init();
-  static SensorMessage_t AHT20Data_Send;
+  SensorMessage_t AHT20Data_Send;
   for(;;)
   {
       if (TK_bAHT20_Measure()==true)
@@ -379,6 +406,7 @@ void AppTask_LOGGER(void *argument)
           {
               if (osMutexAcquire(MUTEX_UARTHandle,osWaitForever)==osOK)
               {
+                  //暂时采用阻塞模式
                   HAL_UART_Transmit(&huart2,(uint8_t*)readyLog_ptr,strlen(readyLog_ptr), pdMS_TO_TICKS(50));
                   osMutexRelease(MUTEX_UARTHandle);
               }
@@ -388,6 +416,36 @@ void AppTask_LOGGER(void *argument)
       }
   }
   /* USER CODE END AppTask_LOGGER */
+}
+
+/* USER CODE BEGIN Header_AppTask_LIGHTSENSOR */
+/**
+* @brief Function implementing the Task_LIGHTSENSO thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_AppTask_LIGHTSENSOR */
+void AppTask_LIGHTSENSOR(void *argument)
+{
+  /* USER CODE BEGIN AppTask_LIGHTSENSOR */
+  /* Infinite loop */
+  TK_vLED_Init();
+  SensorMessage_t LightSensorData_Send;
+  for(;;)
+  {
+      if(osSemaphoreAcquire(SEM_ADC1_CONV_CPLTHandle,osWaitForever)==osOK)
+      {
+        TK_vLightSensor_Conversion();
+      }
+      if (osSemaphoreAcquire(SEM_ADC1_CONV_CPLTHandle, pdMS_TO_TICKS(1000))==osOK)
+      {
+          LightSensorData_Send.type=LIGHT_SENSOR;
+          LightSensorData_Send.DATA.light_intensity=TK_fLightSensor_GetLightIntensity();
+          osMessageQueuePut(Queue_toOLEDHandle,&LightSensorData_Send,0, pdMS_TO_TICKS(1000));
+      }
+      osDelay(pdMS_TO_TICKS(1000));//一秒钟测量一次y()
+  }
+  /* USER CODE END AppTask_LIGHTSENSOR */
 }
 
 /* Private application code --------------------------------------------------*/

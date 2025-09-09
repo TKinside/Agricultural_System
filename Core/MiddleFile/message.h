@@ -6,7 +6,8 @@
 #define AGRICULTURAL_SYSTEM_MESSAGE_H
 
 enum SensorType_t{
-    AHT20=0,
+    NONE,
+    AHT20,
     LIGHT_SENSOR
 
 };

@@ -13,19 +13,24 @@ OLED屏幕驱动来自于厂商提供
  *
  */
 #include "oled.h"
+#include "i2c.h"
+#include "main.h"
+#include <stdlib.h>
+#include "stdio.h"
+#include <cmsis_os2.h>
 
 
-// OLED器件地址
-#define OLED_ADDRESS 0x7A
 
-// OLED参数
-#define OLED_PAGE 8            // OLED页数
-#define OLED_ROW 8 * OLED_PAGE // OLED行数
-#define OLED_COLUMN 128        // OLED列数
+
 
 // 显存
 uint8_t OLED_GRAM[OLED_PAGE][OLED_COLUMN];
-
+//I2C1总线互斥锁
+extern osMutexId_t MUTEX_I2C1Handle;
+//I2C1发送完成信号量
+extern  osSemaphoreId_t SEM_I2C1_TX_CPLTHandle;
+//I2C1接收完成信号量
+extern  osSemaphoreId_t SEM_I2C1_RX_CPLTHandle;
 //当前页面
 static volatile PageState CurrentPage = PAGE_HOME;
 
@@ -57,7 +62,6 @@ void OLED_Send(uint8_t *data, uint8_t len)
             osSemaphoreAcquire(SEM_I2C1_TX_CPLTHandle, osWaitForever);
 
             // 4. 等待I2C硬件协议完成，总线真正空闲
-            //    这是预防问题的核心！
             uint32_t tickstart = osKernelGetTickCount();
             while (HAL_I2C_GetState(&hi2c1) != HAL_I2C_STATE_READY)
             {
@@ -712,12 +716,15 @@ void OLED_SetContrast(uint8_t contrast) {
 }
 void TK_vOLED_UpdateSensorData(SensorMessage_t sensorData_Get)
 {
-    static uint8_t temperatureInt=0;//温度整数
-    static uint8_t temperatureDec=0;//温度小数
-    static uint8_t humidityInt=0;//湿度整数
-    static uint8_t humidityDec=0;//湿度小数
-    static char temperatureStr[8];
-    static char humidityStr[8];
+     uint8_t temperatureInt=0;//温度整数
+     uint8_t temperatureDec=0;//温度小数
+     uint8_t humidityInt=0;//湿度整数
+     uint8_t humidityDec=0;//湿度小数
+     uint8_t lightIntensityInt;//光强整数
+     uint8_t lightIntensityDec;//光强小数
+     char temperatureStr[10];
+     char humidityStr[10];
+     char lightIntensityStr[10];
     switch (sensorData_Get.type) {
         case AHT20:
         {
@@ -757,15 +764,32 @@ void TK_vOLED_UpdateSensorData(SensorMessage_t sensorData_Get)
             break;
         }
 
-       /* case LIGHT_SENSOR:
+       case LIGHT_SENSOR:
         {
-            char lightIntensityStr[10];
-            sprintf(lightIntensityStr, "%.2f", received.DATA.light_intensity);
+            //解析光强
+            uint32_t lightIntensity_temp = (uint32_t)(sensorData_Get.DATA.light_intensity*100);//光强小数部分放大一百倍
+            lightIntensityInt = (uint8_t)sensorData_Get.DATA.light_intensity;
+            lightIntensityDec = lightIntensity_temp%100;
+            //拼接整数和小数部分
+            sprintf(lightIntensityStr, "%d.%d", lightIntensityInt,lightIntensityDec);
 
-            OLED_PrintASCIIString(16+LightIntensityImg.w+4,4+HumidityImg.h+4+LightIntensityImg.h+4,lightIntensityStr, &afont24x12, OLED_COLOR_NORMAL);
-            OLED_ShowFrame();
+            // 1. 在显存中绘制光强字符串 (不清屏)
+            OLED_PrintASCIIString(16+LightIntensityImg.w+4, 4+TemperatureImg.h+4+HumidityImg.h+4, lightIntensityStr, &afont12x6, OLED_COLOR_NORMAL);
+            // 2. 计算需要刷新的区域
+            //    这个区域应该能完整地包裹住数值
+            //    x坐标：从图标右侧开始
+            //    y坐标：从数值的顶部开始
+            //    宽度：取字符串的宽度
+            //    高度：覆盖从数值顶部到底部
+            uint8_t refresh_x = 16 + LightIntensityImg.w + 4;
+            uint8_t refresh_y = 4 + TemperatureImg.h + 4 + HumidityImg.h + 4;
+            uint8_t refresh_width = 40; // 估算一个足够容纳"xx.xx"的宽度
+            uint8_t refresh_height = LightIntensityImg.h;
+            // 3. 调用局部刷新函数，只更新那一小块区域
+            TK_vOLED_RefreshArea(refresh_x, refresh_y, refresh_width, refresh_height);
+
             break;
-        }*/
+        }
 
         default:
 

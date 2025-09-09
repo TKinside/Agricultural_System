@@ -1,5 +1,5 @@
-#ifndef __FONT_H
-#define __FONT_H
+#ifndef AGRICULTURAL_SYSTEM_FONT_H
+#define AGRICULTURAL_SYSTEM_FONT_H
 #include "stdint.h"
 #include "string.h"
 typedef struct ASCIIFont {
@@ -50,4 +50,4 @@ extern const Image RunningStatusImg;
 
 
 
-#endif // __FONT_H
+#endif //AGRICULTURAL_SYSTEM_FONT_H

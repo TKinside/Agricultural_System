@@ -6,9 +6,7 @@
 #define AGRICULTURAL_SYSTEM_LED_H
 
 #include "main.h"
-#include "stdbool.h"
-#include "FreeRTOS.h"
-#include "cmsis_os2.h"
+
 enum LEDColor_t
 {
     ALL=0,
